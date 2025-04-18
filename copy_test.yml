@@ -18,7 +18,7 @@
         _src_file: 10001_Linux_Installer_kaihatsu.zip
 
     - name: copy 
-        ansible.builtin.copy:
+      ansible.builtin.copy:
         src: "./{{ _src_file }}"
         dest: /tmp
       
