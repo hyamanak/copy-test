@@ -1,0 +1,27 @@
+---
+- name: test create file, directory, and copy the file
+  hosts: all
+  tasks:
+    - name: create directory
+      ansible.builtin.file:
+        path: /opt/copy_test
+        state: directory
+
+    - name: create a file
+      ansible.builtin.file:
+        path: /opt/copy_test/10001_Linux_Installer_kaihatsu.zip
+        state: touch
+        
+    - name: Define local variables
+      ansible.builtin.set_fact:
+        _src_dir: /opt/copy_test/
+        _src_file: 10001_Linux_Installer_kaihatsu.zip
+
+    - name: copy 
+        ansible.builtin.copy:
+        src: "./{{ _src_file }}"
+        dest: /tmp
+      
+
+        
+
