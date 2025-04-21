@@ -1,0 +1,32 @@
+---
+- name: Simulate checksum mismatch pattern in AAP
+  hosts: all
+  vars:
+    _src_file: mismatch.txt
+    _src_url: https://www.gnu.org/licenses/gpl-3.0.txt
+  tasks:
+    - name: Download file into ./ (EE内の /runner/project)
+      get_url:
+        url: "{{ _src_url }}"
+        dest: "./{{ _src_file }}"
+      delegate_to: localhost
+
+    - name: Compute SHA256 of the file inside EE
+      command: "sha256sum ./{{ _src_file }}"
+      register: sha_local
+      delegate_to: localhost
+
+    - name: Corrupt the file after download (simulate)
+      copy:
+        content: "corrupted content"
+        dest: "./{{ _src_file }}"
+      delegate_to: localhost
+
+    - name: Copy to target node using the corrupted file
+      copy:
+        src: "./{{ _src_file }}"
+        dest: /tmp/
+      delegate_to: localhost
+
+    - name: Compute SHA256 on target
+      command: "sha256sum /tmp/{{
