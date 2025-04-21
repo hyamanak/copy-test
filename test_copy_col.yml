@@ -1,0 +1,45 @@
+---
+- name: Test fetch + copy + checksum consistency
+  hosts: all
+  vars:
+    _src_file: sample.txt
+    _src_url: https://www.gnu.org/licenses/gpl-3.0.txt
+    _controller_path: "/tmp/{{ _src_file }}"
+
+  tasks:
+    - name: Download sample file to Controller
+      ansible.builtin.get_url:
+        url: "{{ _src_url }}"
+        dest: "{{ _controller_path }}"
+      delegate_to: controller.example.com
+
+    - name: Compute SHA256 on Controller
+      ansible.builtin.command: "sha256sum {{ _controller_path }}"
+      register: sha_controller
+      delegate_to: controller.example.com
+
+    - name: Copy file from Controller to target node
+      ansible.builtin.copy:
+        src: "{{ _controller_path }}"
+        dest: /tmp/
+      delegate_to: controller.example.com
+
+    - name: Compute SHA256 on target
+      ansible.builtin.command: "sha256sum /tmp/{{ _src_file }}"
+      register: sha_target
+
+    - name: Compare SHA256 checksums
+      ansible.builtin.debug:
+        msg: |
+          ✅ SHA256 Checksum Match!
+          Controller: {{ sha_controller.stdout }}
+          Target:     {{ sha_target.stdout }}
+      when: sha_controller.stdout.split()[0] == sha_target.stdout.split()[0]
+
+    - name: Fail if checksum does not match
+      ansible.builtin.fail:
+        msg: |
+          ❌ SHA256 Checksum Mismatch!
+          Controller: {{ sha_controller.stdout }}
+          Target:     {{ sha_target.stdout }}
+      when: sha_controller.stdout.split()[0] != sha_target.stdout.split()[0]
