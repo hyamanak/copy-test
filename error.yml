@@ -29,4 +29,13 @@
       delegate_to: localhost
 
     - name: Compute SHA256 on target
-      command: "sha256sum /tmp/{{
+      command: "sha256sum /tmp/{{ _src_file }}"
+      register: sha_target
+
+    - name: Compare SHA256 checksums
+      debug:
+        msg: |
+          ❌ SHA256 Checksum Mismatch
+          EE:      {{ sha_local.stdout }}
+          Target:  {{ sha_target.stdout }}
+      when: sha_local.stdout.split()[0] != sha_target.stdout.split()[0]
