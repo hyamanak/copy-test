@@ -2,11 +2,12 @@
 - name: Simulate fetch-like file delivery to EE and validate copy
   hosts: all
   gather_facts: false
-  vars:
-    _src_file: 10001_Linux_Installer_kaihatsu.zip
-    _test_content: "dummy zip content for testing"
-
   tasks:
+    - name: Set test filename and content
+      set_fact:
+        _src_file: 10001_Linux_Installer_kaihatsu.zip
+        _test_content: "dummy zip content for testing"
+
     - name: Create dummy zip content file in EE
       copy:
         content: "{{ _test_content }}"
