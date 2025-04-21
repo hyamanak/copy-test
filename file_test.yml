@@ -1,0 +1,44 @@
+---
+- name: Simulate fetch-like file delivery to EE and validate copy
+  hosts: all
+  gather_facts: false
+  vars:
+    _src_file: 10001_Linux_Installer_kaihatsu.zip
+    _test_content: "dummy zip content for testing"
+
+  tasks:
+    - name: Create dummy zip content file in EE
+      copy:
+        content: "{{ _test_content }}"
+        dest: "./{{ _src_file }}"
+      delegate_to: localhost
+
+    - name: SHA256 on EE (Execution Environment)
+      command: "sha256sum ./{{ _src_file }}"
+      register: sha_ee
+      delegate_to: localhost
+
+    - name: Copy file from EE to target node
+      copy:
+        src: "./{{ _src_file }}"
+        dest: /tmp/
+      delegate_to: localhost
+
+    - name: SHA256 on target node
+      command: "sha256sum /tmp/{{ _src_file }}"
+      register: sha_target
+
+    - name: Compare SHA256 checksums
+      debug:
+        msg: |
+          ✅ SHA256 Comparison
+          EE:      {{ sha_ee.stdout }}
+          Target:  {{ sha_target.stdout }}
+
+    - name: Fail if checksums do not match
+      fail:
+        msg: |
+          ❌ Checksum mismatch detected!
+          EE:      {{ sha_ee.stdout }}
+          Target:  {{ sha_target.stdout }}
+      when: sha_ee.stdout.split()[0] != sha_target.stdout.split()[0]
