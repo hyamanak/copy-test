@@ -1,41 +1,26 @@
----
-- name: Simulate checksum mismatch pattern in AAP
-  hosts: all
-  vars:
-    _src_file: mismatch.txt
-    _src_url: https://www.gnu.org/licenses/gpl-3.0.txt
-  tasks:
-    - name: Download file into ./ (EE内の /runner/project)
-      get_url:
-        url: "{{ _src_url }}"
-        dest: "./{{ _src_file }}"
-      delegate_to: localhost
+- name: Download file inside EE (コンテナ)
+  get_url:
+    url: https://www.gnu.org/licenses/gpl-3.0.txt
+    dest: "./sample.txt"
+  delegate_to: localhost
 
-    - name: Compute SHA256 of the file inside EE
-      command: "sha256sum ./{{ _src_file }}"
-      register: sha_local
-      delegate_to: localhost
+- name: Copy file to target
+  copy:
+    src: "./sample.txt"
+    dest: /tmp/
+  delegate_to: localhost
 
-    - name: Corrupt the file after download (simulate)
-      copy:
-        content: "corrupted content"
-        dest: "./{{ _src_file }}"
-      delegate_to: localhost
+- name: SHA256 on EE
+  command: sha256sum ./sample.txt
+  register: sha_local
+  delegate_to: localhost
 
-    - name: Copy to target node using the corrupted file
-      copy:
-        src: "./{{ _src_file }}"
-        dest: /tmp/
-      delegate_to: localhost
+- name: SHA256 on target
+  command: sha256sum /tmp/sample.txt
+  register: sha_target
 
-    - name: Compute SHA256 on target
-      command: "sha256sum /tmp/{{ _src_file }}"
-      register: sha_target
-
-    - name: Compare SHA256 checksums
-      debug:
-        msg: |
-          ❌ SHA256 Checksum Mismatch
-          EE:      {{ sha_local.stdout }}
-          Target:  {{ sha_target.stdout }}
-      when: sha_local.stdout.split()[0] != sha_target.stdout.split()[0]
+- name: Compare
+  debug:
+    msg: |
+      EE: {{ sha_local.stdout }}
+      Target: {{ sha_target.stdout }}
