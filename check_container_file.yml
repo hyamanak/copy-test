@@ -1,0 +1,39 @@
+---
+- name: EEにファイルを保存し、整合性を確認するテスト
+  hosts: localhost
+  gather_facts: false
+  vars:
+    _src_file: gpl-3.0.txt
+    _url: https://www.gnu.org/licenses/gpl-3.0.txt
+
+  tasks:
+    - name: Download GNU GPL file into EE (Execution Environment)
+      get_url:
+        url: "{{ _url }}"
+        dest: "./{{ _src_file }}"  # EE内の /runner/project 以下
+      delegate_to: localhost
+
+    - name: Check file after download
+      stat:
+        path: "./{{ _src_file }}"
+      register: downloaded_stat
+      delegate_to: localhost
+
+    - name: Show file size and existence
+      debug:
+        msg: >
+          📥 File exists: {{ downloaded_stat.stat.exists }},
+          size: {{ downloaded_stat.stat.size }} bytes
+      delegate_to: localhost
+
+    - name: Compute SHA256 of downloaded file
+      command: "sha256sum ./{{ _src_file }}"
+      register: sha_downloaded
+      when: downloaded_stat.stat.exists and downloaded_stat.stat.size > 0
+      delegate_to: localhost
+
+    - name: Show SHA256 result
+      debug:
+        msg: "SHA256: {{ sha_downloaded.stdout }}"
+      when: sha_downloaded is defined
+      delegate_to: localhost
