@@ -1,26 +1,36 @@
-- name: Download file inside EE (コンテナ)
-  get_url:
-    url: https://www.gnu.org/licenses/gpl-3.0.txt
-    dest: "./sample.txt"
-  delegate_to: localhost
+---
+- name: Verify file consistency in EE using get_url and copy
+  hosts: all
+  gather_facts: false
+  vars:
+    _src_url: https://www.gnu.org/licenses/gpl-3.0.txt
+    _src_file: sample.txt
+  tasks:
 
-- name: Copy file to target
-  copy:
-    src: "./sample.txt"
-    dest: /tmp/
-  delegate_to: localhost
+    - name: Download file inside EE (コンテナ)
+      ansible.builtin.get_url:
+        url: "{{ _src_url }}"
+        dest: "./{{ _src_file }}"
+      delegate_to: localhost
 
-- name: SHA256 on EE
-  command: sha256sum ./sample.txt
-  register: sha_local
-  delegate_to: localhost
+    - name: SHA256 on EE
+      ansible.builtin.command: "sha256sum ./{{ _src_file }}"
+      register: sha_local
+      delegate_to: localhost
 
-- name: SHA256 on target
-  command: sha256sum /tmp/sample.txt
-  register: sha_target
+    - name: Copy file to target
+      ansible.builtin.copy:
+        src: "./{{ _src_file }}"
+        dest: "/tmp/"
+      delegate_to: localhost
 
-- name: Compare
-  debug:
-    msg: |
-      EE: {{ sha_local.stdout }}
-      Target: {{ sha_target.stdout }}
+    - name: SHA256 on target
+      ansible.builtin.command: "sha256sum /tmp/{{ _src_file }}"
+      register: sha_target
+
+    - name: Compare hashes
+      ansible.builtin.debug:
+        msg: |
+          ✅ SHA256 Comparison
+          EE:      {{ sha_local.stdout }}
+          Target:  {{ sha_target.stdout }}
